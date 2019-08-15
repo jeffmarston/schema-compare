@@ -1,0 +1,118 @@
+// Here you can add other styles
+
+body {
+  background: white;
+}
+
+.main .container-fluid {
+  padding: 10px;
+}
+.breadcrumb {
+  margin-bottom: 10px;
+}
+
+.row {
+  margin-right: 0;
+  margin-left: 0;
+}
+
+.btn {
+  margin: 4px 0 4px 0;
+  border-radius: 0;
+}
+
+.ag-theme-balham {
+  .ag-row:not(.ag-row-first) {
+    border-width: 0;
+  }
+  font-size: 14px;
+}
+
+.breadcrumb {
+  margin-bottom: 0;
+  border-bottom: none;
+}
+
+.app-header {
+  background-color: #222;
+  color: white;
+  border: none;
+}
+
+.sidebar {
+  background-color: rgb(0, 0, 0);
+  .nav-link.active {
+    background-color: rgb(17, 54, 20);
+    .nav-icon {
+      color: #20d82f;
+    }
+  }
+  .nav-link:hover {
+    background-color: rgb(41, 136, 46);
+  }
+  .nav-title {
+    color: #73818f;
+  }
+}
+
+.breadcrumb {
+  background: #555;
+  color: white;
+}
+
+.app-footer {
+  background: #272826;
+}
+
+* {
+  font-family: "Source Code Pro", monospace;
+  font-family: "Roboto", sans-serif;
+}
+
+.app-title {
+    font-family: "Rosario", sans-serif;
+    margin-left: 20px;
+}
+
+html:not([dir="rtl"]) .aside-menu{
+  margin-right: -800px;
+}
+
+.dropdown-item {
+  padding-top: 4px;
+}
+
+.aside-menu {
+  width: 800px;  
+  margin-right: -800px;
+}
+
+html:not([dir="rtl"]) .aside-menu-show.aside-menu-fixed .main, html:not([dir="rtl"]) .aside-menu-show.aside-menu-fixed .app-footer, html:not([dir="rtl"]) .aside-menu-lg-show.aside-menu-fixed .main, html:not([dir="rtl"]) .aside-menu-lg-show.aside-menu-fixed .app-footer {
+    margin-right: 800px;
+}
+
+.modal-content {
+  border-radius: 0;
+}
+.modal-body {
+  padding: 0;
+  border: 0;
+}
+.modal-header {
+  padding: 14px;
+  border: none;
+}
+.modal-footer {
+  padding: 14px;
+  border: none;
+}
+.tab-content {
+  border-bottom:none;
+}
+.card {
+  border-radius: 0;
+  box-shadow: 0 2px 5px 0 rgba(0,0,0,.16), 0 2px 10px 0 rgba(0,0,0,.12);
+}
+.btn {
+  box-shadow: 2px 2px 5px rgba(0,0,0,.16);
+}
