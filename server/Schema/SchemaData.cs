@@ -5,6 +5,7 @@ namespace Eze.SchemaCompare
     public class SchemaData
     {
         public string Version { get; set; }
+        public bool Entitled { get; set; }
         public List<DbObject> Objects { get; set; }
         public string Client { get; set; }
 

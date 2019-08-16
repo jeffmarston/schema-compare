@@ -36,10 +36,13 @@ namespace Eze.SchemaCompare
             if (DataAccess.SchemaDictionary.ContainsKey(client))
             {
                 var entry = DataAccess.SchemaDictionary[client];
+
+                // Strip out the Definition because it's huge
                 var result = new SchemaData()
                 {
                     Client = entry.Client,
                     Version = entry.Version,
+                    Entitled = entry.Entitled,
                     Objects = new List<DbObject>()
                 };
                 foreach (var obj in entry.Objects)
@@ -80,7 +83,6 @@ namespace Eze.SchemaCompare
         public ActionResult<string[]> GetDbObjects(string client)
         {
             client = client.ToLower().Trim();
-            string result = null;
             if (DataAccess.SchemaDictionary.ContainsKey(client))
             {
                 var objects = DataAccess.SchemaDictionary[client].Objects.Select(o => o.Name).ToList();
@@ -98,7 +100,7 @@ namespace Eze.SchemaCompare
             if (DataAccess.SchemaDictionary.ContainsKey(client))
             {
                 var clientSchema = DataAccess.SchemaDictionary[client];
-                var version = clientSchema.Version;
+                var version = clientSchema.Version.ToLower();
 
                 List<DbObject> standardObjects = null;
                 if (DataAccess.SchemaDictionary.ContainsKey("*" + version))
@@ -115,10 +117,29 @@ namespace Eze.SchemaCompare
                     var match = standardObjects.Where(o => o.Name == clientObj.Name).FirstOrDefault();
                     if (match != null && match.CheckSum != clientObj.CheckSum)
                     {
-                        dynamic item = new {
+                        string plusSign = (clientObj.Definition.Length > match.Definition.Length) ? "+" : "";
+                        dynamic item = new
+                        {
+                            DbObject = clientObj.Name,
+                            DbType = clientObj.Type.Trim(),
+                            Customization = "modified",
+                            Message = clientObj.Name + " has been modified. (Length " + plusSign + (clientObj.Definition.Length - match.Definition.Length) + ")"
+                        };
+                        result.Add(item);
+                    }
+
+                    if (match == null)
+                    {
+                        string objectType = (clientObj.Type.Trim() == "P") ? "Stored Procedure " 
+                            : (clientObj.Type.Trim() == "U") ? "Table " 
+                            : (clientObj.Type.Trim() == "UT") ? "Trigger " 
+                            : "";
+                        dynamic item = new
+                        {
                             DbObject = clientObj.Name,
                             DbType = clientObj.Type,
-                            Message = clientObj.Name + " differs from the standard. Lengths: " + clientObj.Definition.Length + " != " + match.Definition.Length
+                            Customization = "new",
+                            Message = objectType + clientObj.Name + " is new"
                         };
                         result.Add(item);
                     }

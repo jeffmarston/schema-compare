@@ -7,6 +7,7 @@ namespace eze.schema.extract
         public string Version { get; set; }
         public List<DbObject> Objects { get; set; }
         public string Client { get; set; }
+        public bool Entitled { get; set; }
 
         public SchemaData()
         {

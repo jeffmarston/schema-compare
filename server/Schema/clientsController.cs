@@ -32,11 +32,10 @@ namespace Eze.SchemaCompare
         }
 
         [HttpGet()]
-        public ActionResult<string[]> GetAll()
-        {
-            var clients = DataAccess.SchemaDictionary.Keys.ToList();
-            clients.Sort();
-            return clients.ToArray();
+        public ActionResult<object> GetAll()
+        {            
+            var clients = DataAccess.SchemaDictionary.Select(o => new { Client = o.Key, o.Value.Version, o.Value.Entitled }).ToList();
+            return clients.OrderBy(o => o.Client).ToArray();
         }
 
     }

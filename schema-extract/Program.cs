@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using Mono.Options;
+using Newtonsoft.Json;
 using System;
 using System.Data.SqlClient;
 using System.IO;
@@ -8,68 +9,136 @@ namespace eze.schema.extract
 {
     class Program
     {
-        static void Main(string[] args)
+        static int Main(string[] args)
         {
+            bool showHelp = false;
+            string server = "Localhost", db = "TC", username = null, pwd = null;
+            string restUrl = "http://localhost:5000/api/schema/";
+            string connString = "";
+            var p = new OptionSet() {
+                { "s|server=",  "The {SERVER} where the TC Database is hosted, default = Localhost.",v => { server = v; } },
+                { "d|database=","The name of the {DATABASE}, defaults = TC",v => { db = v ; } } ,
+                { "u|username=","The database {USERNAME}, if not specified it will use a trusted connection",v => { username = v; } } ,
+                { "p|password=","The database {PASSWORD}",v => { pwd = v; } } ,
+                { "a|apiURL=",  "The {URL} used to upload data (optional)",v => { restUrl = v; } } ,
+                { "h|help",     "Show this message and exit", v => showHelp = v != null },
+            };
+            var extra = p.Parse(args);
+            if (showHelp)
+            {
+                ShowHelp(p);
+                return 0;
+            }
             //set the connection string
-            string connString = @"Server=.; Database=TC; Trusted_Connection=True;";
-            // connString = @"Server=ultron;Database=TC2;User Id=sa; Password=redsox;";
+            if (username == null)
+            {
+                connString = $"Server={server};Database={db};Trusted_Connection=True;";
+            }
+            else
+            {
+                connString = $"Server={server};Database={db};User Id={username}; Password={pwd};";
+            }
 
+            var schemaResult = new SchemaData();
             try
             {
-                //sql connection object
-                using (SqlConnection conn = new SqlConnection(connString))
-                {
-
-                    //set stored procedure
-                    SqlCommand cmd = new SqlCommand(SqlConstants.SqlQuery, conn);
-                    conn.Open();
-                    SqlDataReader dr = cmd.ExecuteReader();
-
-                    Console.WriteLine(Environment.NewLine + "Retrieving data from database..." + Environment.NewLine);
-
-                    var schemaResult = new SchemaData();
-                    if (dr.HasRows)
-                    {
-                        while (dr.Read()) // && schemaResult.Objects.Count < 1)
-                        {
-                            DbObject obj = new DbObject()
-                            {
-                                Name = dr.GetString(0),
-                                Type = dr.GetString(1),
-                                CheckSum = dr.IsDBNull(2) ? 0 : dr.GetInt32(2),
-                                Definition = dr.IsDBNull(3) ? "" : dr.GetString(3)
-                            };
-                            schemaResult.Objects.Add(obj);
-                        }
-                        PostResults(schemaResult);
-                    }
-                    else
-                    {
-                        Console.WriteLine("No data found.");
-                    }
-                    dr.Close();
-                    conn.Close();
-                }
+                BuildSchemaFromDb(connString, schemaResult);
             }
             catch (Exception ex)
             {
-                //display error message
-                Console.WriteLine("Exception: " + ex.Message);
+                Console.WriteLine("Error getting data from DB: " + ex.Message);
+                return 1;
             }
-
-
+            try
+            {
+                PostResults(restUrl, schemaResult);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error uploading data to Eze Service: " + ex.Message);
+                return 2;
+            }
+            return 0;
         }
 
-        static void PostResults(SchemaData schemaResult)
+        private static void ShowHelp(OptionSet p)
         {
-            schemaResult.Client = "*2019.4";
-            schemaResult.Version = "2019.4";
+            Console.WriteLine("Usage: greet [OPTIONS]+ message");
+            Console.WriteLine("Greet a list of individuals with an optional message.");
+            Console.WriteLine("If no message is specified, a generic greeting is used.");
+            Console.WriteLine();
+            Console.WriteLine("Options:");
+            p.WriteOptionDescriptions(Console.Out);
+        }
 
+        private static void BuildSchemaFromDb(string connString, SchemaData schemaResult)
+        {
+            Console.WriteLine("Retrieving data from database...");
+            // Get the Client Metadata: Name, Version, etc.
+            using (SqlConnection conn = new SqlConnection(connString))
+            {
+                conn.Open();
+                using (SqlCommand cmd = new SqlCommand(SqlConstants.GetClientInfo, conn))
+                {
+                    using (SqlDataReader dr = cmd.ExecuteReader())
+                    {
+                        if (dr != null && dr.HasRows)
+                        {
+                            while (dr.Read())
+                            {
+                                var rowCaption = dr["Setting"].ToString();
+                                switch (rowCaption)
+                                {
+                                    case "Client":
+                                        schemaResult.Client = dr["Value"].ToString();
+                                        break;
+                                    case "Entitled":
+                                        schemaResult.Entitled = dr["Value"].ToString() == "1";
+                                        break;
+                                    case "Version":
+                                        schemaResult.Version = dr["Value"].ToString();
+                                        break;
+                                    default: break;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Get the DB OBject definitions: Procedures, Tables, etc.
+                using (SqlCommand cmd = new SqlCommand(SqlConstants.GetObjects, conn))
+                {
+                    using (SqlDataReader dr = cmd.ExecuteReader())
+                    {
+                        if (dr != null && dr.HasRows)
+                        {
+                            while (dr.Read())
+                            {
+                                DbObject obj = new DbObject()
+                                {
+                                    Name = dr["Name"].ToString(),
+                                    Type = dr["Type"].ToString().Trim(),
+                                    CheckSum = dr.IsDBNull(2) ? 0 : Convert.ToInt32(dr["CheckSum"]),
+                                    Definition = dr.IsDBNull(3) ? "" : dr["Definition"].ToString(),
+                                };
+                                schemaResult.Objects.Add(obj);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        static void PostResults(string restUrl, SchemaData schemaResult)
+        {
+            if (!restUrl.EndsWith("/"))
+            {
+                restUrl += "/";
+            }
             string json = JsonConvert.SerializeObject(schemaResult);
-            Console.WriteLine("POSTing results...");
-            File.WriteAllText("output.json", json);
+            Console.WriteLine("Posting results to: " + restUrl + schemaResult.Client);
 
-            var httpWebRequest = (HttpWebRequest)WebRequest.Create("http://localhost:5000/api/schema/" + schemaResult.Client);
+            var httpWebRequest = (HttpWebRequest)WebRequest.Create(restUrl + schemaResult.Client);
             httpWebRequest.ContentType = "application/json";
             httpWebRequest.Method = "POST";
 
@@ -82,6 +151,7 @@ namespace eze.schema.extract
             using (var streamReader = new StreamReader(httpResponse.GetResponseStream()))
             {
                 var result = streamReader.ReadToEnd();
+                Console.WriteLine(result);
             }
         }
     }

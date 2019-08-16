@@ -116,7 +116,6 @@ export default {
       });
     },
     save() {
-      console.log(this.activeAdapter);
       let promise = saveConfig({
         activeAdapter: this.activeAdapter,
         emsSettings: this.emsSettings

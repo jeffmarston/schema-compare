@@ -14,7 +14,7 @@
           value="Please select"
           :options="profile1.availableObjects"
           v-model="profile1.selectedDbObject"
-          @change="loadCode(profile1, 'orig')"
+          @change="loadCode(profile1, 'value')"
         ></b-form-select>
       </b-col>
       <b-col xs="6">
@@ -30,7 +30,7 @@
           value="Please select"
           :options="profile2.availableObjects"
           v-model="profile2.selectedDbObject"
-          @change="loadCode(profile2, 'value')"
+          @change="loadCode(profile2, 'orig')"
         ></b-form-select>
       </b-col>
     </b-row>
@@ -70,14 +70,10 @@ export default {
   components: { codemirror },
   mounted() {
     axios.get("http://localhost:5000/api/clients").then(response => {
-      this.availableClients = response.data;
-
-      console.log(this.$route.query.client);
-      console.log(this.$route.query.object);
-
+      this.availableClients = response.data.map(o => o.client);
       if (this.$route.query.client) {
         this.profile1.selectedClient = this.$route.query.client;
-        this.profile2.selectedClient = "*2019.5";
+        this.profile2.selectedClient = "*" + this.$route.query.version;
       }
       if (this.$route.query.object) {
         this.updateObjects(this.profile1);
@@ -125,9 +121,9 @@ export default {
         )
         .then(response => {
           if (target === "orig") {
-            this.cmOptions.value = response.data;
-          } else {
             this.cmOptions.orig = response.data;
+          } else {
+            this.cmOptions.value = response.data;
           }
           this.$refs.myCm.refresh();
         });
@@ -135,9 +131,7 @@ export default {
     updateObjects(profile) {
       axios
         .get(
-          "http://localhost:5000/api/schema/" +
-            profile.selectedClient +
-            "/dbobjects"
+          `http://localhost:5000/api/schema/${profile.selectedClient}/dbobjects`
         )
         .then(response => {
           profile.availableObjects = response.data;
@@ -147,7 +141,7 @@ export default {
 };
 </script>
 
-<style lang="scss">
+<style scoped lang="scss">
 $toolbar-height: 80px;
 
 .component-wrapper {
