@@ -23,7 +23,7 @@
     "bootstrap": "^4.2.1",
     "bootstrap-vue": "^2.0.0-rc.11",
     "chart.js": "^2.7.3",
-    "codemirror": "^5.48.0",
+    "codemirror": "^5.58.2",
     "core-js": "^2.6.2",
     "css-vars-ponyfill": "^1.16.2",
     "diff-match-patch": "^1.0.4",
